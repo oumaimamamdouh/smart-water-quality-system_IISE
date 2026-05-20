@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Water Quality - Dashboard Avancé</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; }
+        
+        .header {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-value { font-size: 2.5em; font-weight: bold; color: #1a73e8; }
+        .stat-label { color: #666; margin-top: 8px; }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            border-left: 4px solid #1a73e8;
+            padding-left: 12px;
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        .form-group input:focus { outline: none; border-color: #1a73e8; }
+        
+        .btn {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+        }
+        
+        .btn-secondary { background: #e0e0e0; color: #333; margin-top: 10px; }
+        
+        .quality-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .confidence-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 25px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .confidence-fill {
+            background: linear-gradient(90deg, #1a73e8, #0d47a1);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.85em;
+            transition: width 0.5s;
+        }
+        
+        .quick-tests {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .quick-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .loading { display: none; text-align: center; padding: 20px; }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .container { padding: 15px; }
+        }
+        
+        .analysis-list { list-style: none; margin-top: 15px; }
+        .analysis-list li { padding: 8px 0; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💧 Smart Water Quality System - Advanced Dashboard</h1>
+        <p>Système Professionnel de Surveillance de la Qualité de l'Eau</p>
+    </div>
+    
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value" id="totalPredictions">0</div><div class="stat-label">Prédictions totales</div></div>
+            <div class="stat-card"><div class="stat-value" id="avgConfidence">0%</div><div class="stat-label">Confiance moyenne</div></div>
+            <div class="stat-card"><div class="stat-value" id="potableCount">0</div><div class="stat-label">Eau Potable</div></div>
+            <div class="stat-card"><div class="stat-value" id="dangerCount">0</div><div class="stat-label">Alertes critiques</div></div>
+        </div>
+        
+        <div class="grid-2">
+            <!-- Graphique d'évolution -->
+            <div class="card">
+                <div class="card-title">📈 Évolution de la qualité</div>
+                <canvas id="qualityChart" height="200"></canvas>
+            </div>
+            
+            <!-- Graphique de distribution -->
+            <div class="card">
+                <div class="card-title">🥧 Distribution des qualités</div>
+                <canvas id="distributionChart" height="200"></canvas>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <!-- Formulaire -->
+            <div class="card">
+                <div class="card-title">📊 Données des capteurs</div>
+                <form id="predictionForm">
+                    <div class="form-group"><label>🌡️ Température (0-40°C)</label><input type="number" id="temperature" step="0.1" value="22.5"></div>
+                    <div class="form-group"><label>🧪 pH (0-14)</label><input type="number" id="ph" step="0.1" value="7.2"></div>
+                    <div class="form-group"><label>💧 Turbidité (0-100 NTU)</label><input type="number" id="turbidity" step="0.1" value="3.5"></div>
+                    <div class="form-group"><label>🫧 Oxygène dissous (0-15 mg/L)</label><input type="number" id="dissolved_oxygen" step="0.1" value="7.8"></div>
+                    <div class="form-group"><label>⚡ Conductivité (0-2000 µS/cm)</label><input type="number" id="conductivity" step="1" value="450"></div>
+                    <button type="submit" class="btn">🔮 Analyser la qualité</button>
+                </form>
+                
+                <div class="quick-tests">
+                    <button class="quick-btn" onclick="quickTest('potable')" style="background:#4CAF50; color:white;">💧 Potable</button>
+                    <button class="quick-btn" onclick="quickTest('polluted')" style="background:#FF9800; color:white;">⚠️ Polluée</button>
+                    <button class="quick-btn" onclick="quickTest('dangerous')" style="background:#F44336; color:white;">🔴 Dangereuse</button>
+                </div>
+                
+                <div class="loading" id="loading"><div class="spinner"></div><p>Analyse en cours...</p></div>
+                <div id="result"></div>
+            </div>
+            
+            <!-- Résultat et Historique -->
+            <div class="card">
+                <div class="card-title">📜 Historique des analyses</div>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table style="width:100%; font-size:0.85em;">
+                        <thead><tr><th>Heure</th><th>Qualité</th><th>Confiance</th></tr></thead>
+                        <tbody id="historyBody"><tr><td colspan="3">Aucune analyse</td></tr></tbody>
+                    </table>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <button class="btn-secondary" style="width:100%;" onclick="exportCSV()">📥 Exporter en CSV</button>
+                    <button class="btn-secondary" style="width:100%; margin-top:5px;" onclick="generateReport()">📄 Générer rapport</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+        let qualityChart, distributionChart;
+        
+        // Initialiser les graphiques
+        function initCharts() {
+            const ctx1 = document.getElementById('qualityChart').getContext('2d');
+            qualityChart = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Score de pollution', data: [], borderColor: '#1a73e8', backgroundColor: 'rgba(26,115,232,0.1)', fill: true }] },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+            
+            const ctx2 = document.getElementById('distributionChart').getContext('2d');
+            distributionChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: { labels: ['Potable', 'Acceptable', 'Polluée', 'Dangereuse'], datasets: [{ data: [0,0,0,0], backgroundColor: ['#4CAF50', '#FFC107', '#FF9800', '#F44336'] }] },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+        }
+        
+        async function updateStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                const data = await response.json();
+                document.getElementById('totalPredictions').innerText = data.database_stats?.total_predictions || 0;
+                document.getElementById('avgConfidence').innerText = (data.database_stats?.average_confidence || 0) + '%';
+            } catch(e) { console.error(e); }
+        }
+        
+        async function updateHistory() {
+            try {
+                const response = await fetch(`${API_URL}/history?limit=20`);
+                const data = await response.json();
+                const history = data.history || [];
+                
+                let potable=0, acceptable=0, polluee=0, dangereuse=0;
+                const tbody = document.getElementById('historyBody');
+                
+                if (history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3">Aucune analyse</td></tr>';
+                } else {
+                    tbody.innerHTML = history.map(h => {
+                        if (h.class_name === 'Potable') potable++;
+                        else if (h.class_name === 'Acceptable') acceptable++;
+                        else if (h.class_name === 'Polluée') polluee++;
+                        else if (h.class_name === 'Dangereuse') dangereuse++;
+                        const time = new Date(h.timestamp).toLocaleTimeString();
+                        const color = h.class_name === 'Potable' ? '#4CAF50' : h.class_name === 'Dangereuse' ? '#F44336' : '#FF9800';
+                        return `<tr><td>${time}</td><td style="color:${color};">${h.class_name}</td><td>${h.confidence}%</td></tr>`;
+                    }).join('');
+                }
+                
+                document.getElementById('potableCount').innerText = potable;
+                document.getElementById('dangerCount').innerText = dangereuse;
+                
+                // Mettre à jour graphique de distribution
+                if (distributionChart) {
+                    distributionChart.data.datasets[0].data = [potable, acceptable, polluee, dangereuse];
+                    distributionChart.update();
+                }
+                
+                // Mettre à jour graphique d'évolution
+                if (qualityChart && history.length > 0) {
+                    const reversed = [...history].reverse();
+                    qualityChart.data.labels = reversed.map((_,i) => i+1);
+                    qualityChart.data.datasets[0].data = reversed.map(h => h.score || 0);
+                    qualityChart.update();
+                }
+            } catch(e) { console.error(e); }
+        }
+        
+        function displayResult(data) {
+            const pred = data.prediction;
+            const color = pred.class_name === 'Potable' ? '#4CAF50' : pred.class_name === 'Dangereuse' ? '#F44336' : '#FF9800';
+            
+            const html = `
+                <div style="background:#f8f9fa; border-radius:12px; padding:15px; margin-top:15px;">
+                    <h4>📊 Résultat</h4>
+                    <div class="quality-badge" style="background:${color}; color:white;">${pred.class_name}</div>
+                    <p><strong>⚠️ Risque:</strong> ${pred.risk_level}</p>
+                    <p><strong>🎯 Action:</strong> ${pred.action}</p>
+                    <div class="confidence-bar"><div class="confidence-fill" style="width:${pred.confidence}%;">${pred.confidence}%</div></div>
+                    <p><strong>📈 Score:</strong> ${pred.score}/12</p>
+                    <strong>🔍 Analyse:</strong>
+                    <ul class="analysis-list">${pred.analysis.map(a => `<li>${a}</li>`).join('')}</ul>
+                </div>
+            `;
+            document.getElementById('result').innerHTML = html;
+        }
+        
+        async function makePrediction(data) {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) throw new Error('Erreur');
+                const result = await response.json();
+                displayResult(result);
+                await updateHistory();
+                await updateStats();
+            } catch(e) {
+                document.getElementById('result').innerHTML = `<div style="background:#ffebee; padding:15px; border-radius:12px;">❌ Erreur: ${e.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function quickTest(type) {
+            let data;
+            if (type === 'potable') data = {temperature:15, ph:7.1, turbidity:1.2, dissolved_oxygen:8.5, conductivity:280};
+            else if (type === 'polluted') data = {temperature:28, ph:8.5, turbidity:18.5, dissolved_oxygen:3.2, conductivity:1050};
+            else data = {temperature:36, ph:9.8, turbidity:55.6, dissolved_oxygen:0.8, conductivity:1850};
+            
+            document.getElementById('temperature').value = data.temperature;
+            document.getElementById('ph').value = data.ph;
+            document.getElementById('turbidity').value = data.turbidity;
+            document.getElementById('dissolved_oxygen').value = data.dissolved_oxygen;
+            document.getElementById('conductivity').value = data.conductivity;
+            makePrediction(data);
+        }
+        
+        function exportCSV() {
+            window.open(`${API_URL}/export/csv`, '_blank');
+        }
+        
+        function generateReport() {
+            window.open(`${API_URL}/export/report`, '_blank');
+        }
+        
+        document.getElementById('predictionForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const data = {
+                temperature: parseFloat(document.getElementById('temperature').value),
+                ph: parseFloat(document.getElementById('ph').value),
+                turbidity: parseFloat(document.getElementById('turbidity').value),
+                dissolved_oxygen: parseFloat(document.getElementById('dissolved_oxygen').value),
+                conductivity: parseFloat(document.getElementById('conductivity').value)
+            };
+            makePrediction(data);
+        });
+        
+        initCharts();
+        updateStats();
+        updateHistory();
+        setInterval(updateStats, 5000);
+        setInterval(updateHistory, 10000);
+    </script>
+</body>
+</html>

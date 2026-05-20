@@ -1,0 +1,16 @@
+Smart Water Quality System: FastAPI web application for water quality classification, batch data upload, PDF reporting, and advanced analytics.
+
+Suggested GitHub topics:
+- fastapi
+- python
+- water-quality
+- data-analysis
+- dashboard
+- reportlab
+- statistics
+
+Release title:
+Initial release of Smart Water Quality System
+
+Release description:
+Professional FastAPI water quality classification project with responsive dashboard, CSV/XLSX upload, PDF report export, and advanced statistics. Ready for academic and GitHub publication.

@@ -1,0 +1,47 @@
+# Python environment
+.venv/
+venv/
+venv12/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+.pyre/
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Database files
+*.db
+water_quality.db
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+# Archive and generated files
+_archive_old_files/
+*.zip
+Smart_Water_Quality_Projet.zip
+rapport_qualite_eau.html
+# Generated reports
+*.pdf
+# Do not ignore project source and docs
+!app.py
+!requirements.txt
+!README.md
+!README_FR.md
+!README_FINAL.md
+!sample_tests.csv
+!static/**
+!src/**
